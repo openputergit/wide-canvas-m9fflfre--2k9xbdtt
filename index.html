@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Photo Fusion AI</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <style>
+        .preview-container {
+            aspect-ratio: 1/1;
+            background: #f0f0f0;
+        }
+        @media (max-width: 640px) {
+            .preview-container {
+                aspect-ratio: 4/5;
+            }
+        }
+    </style>
+</head>
+<body class="bg-gradient-to-r from-cyan-600 to-blue-700 min-h-screen">
+    <div class="container mx-auto px-4 py-8">
+        <div class="max-w-4xl mx-auto bg-white rounded-xl shadow-2xl p-6">
+            <h1 class="text-3xl font-bold text-center mb-6">PhotoFusion AI</h1>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- Image Upload Section -->
+                <div class="space-y-4">
+                    <div class="preview-container border-2 border-dashed border-gray-300 rounded-lg flex items-center justify-center relative">
+                        <img id="preview1" class="hidden max-w-full max-h-full object-contain">
+                        <div id="placeholder1" class="text-center">
+                            <i class="bi bi-cloud-upload text-4xl text-gray-400"></i>
+                            <p class="text-gray-500">Upload First Image</p>
+                        </div>
+                    </div>
+                    <input type="file" id="upload1" class="hidden" accept="image/*">
+                    <button onclick="document.getElementById('upload1').click()" class="w-full py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600">
+                        Select Image 1
+                    </button>
+                </div>
+
+                <div class="space-y-4">
+                    <div class="preview-container border-2 border-dashed border-gray-300 rounded-lg flex items-center justify-center relative">
+                        <img id="preview2" class="hidden max-w-full max-h-full object-contain">
+                        <div id="placeholder2" class="text-center">
+                            <i class="bi bi-cloud-upload text-4xl text-gray-400"></i>
+                            <p class="text-gray-500">Upload Second Image</p>
+                        </div>
+                    </div>
+                    <input type="file" id="upload2" class="hidden" accept="image/*">
+                    <button onclick="document.getElementById('upload2').click()" class="w-full py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600">
+                        Select Image 2
+                    </button>
+                </div>
+            </div>
+
+            <!-- Controls -->
+            <div class="mt-8 space-y-4">
+                <div class="grid grid-cols-2 gap-4">
+                    <button id="mergeBtn" class="py-3 bg-green-500 text-white rounded-lg hover:bg-green-600 disabled:opacity-50">
+                        <i class="bi bi-union mr-2"></i>Merge Images
+                    </button>
+                    <button id="downloadBtn" class="py-3 bg-purple-500 text-white rounded-lg hover:bg-purple-600 disabled:opacity-50">
+                        <i class="bi bi-download mr-2"></i>Download
+                    </button>
+                </div>
+
+                <div class="bg-gray-100 p-4 rounded-lg">
+                    <h3 class="font-semibold mb-2">Enhancement Options</h3>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm mb-1">Blend Mode</label>
+                            <select id="blendMode" class="w-full rounded border p-2">
+                                <option value="normal">Normal</option>
+                                <option value="multiply">Multiply</option>
+                                <option value="screen">Screen</option>
+                                <option value="overlay">Overlay</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm mb-1">Opacity</label>
+                            <input type="range" id="opacity" min="0" max="100" value="100" class="w-full">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Result Preview -->
+            <div class="mt-8">
+                <h3 class="font-semibold mb-4">Result Preview</h3>
+                <div class="preview-container border-2 border-gray-300 rounded-lg flex items-center justify-center">
+                    <canvas id="resultCanvas" class="max-w-full max-h-full hidden"></canvas>
+                    <div id="resultPlaceholder" class="text-center">
+                        <i class="bi bi-image text-4xl text-gray-400"></i>
+                        <p class="text-gray-500">Merged image will appear here</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const upload1 = document.getElementById('upload1');
+        const upload2 = document.getElementById('upload2');
+        const preview1 = document.getElementById('preview1');
+        const preview2 = document.getElementById('preview2');
+        const placeholder1 = document.getElementById('placeholder1');
+        const placeholder2 = document.getElementById('placeholder2');
+        const resultCanvas = document.getElementById('resultCanvas');
+        const resultPlaceholder = document.getElementById('resultPlaceholder');
+        const mergeBtn = document.getElementById('mergeBtn');
+        const downloadBtn = document.getElementById('downloadBtn');
+        const blendMode = document.getElementById('blendMode');
+        const opacity = document.getElementById('opacity');
+
+        let image1 = null;
+        let image2 = null;
+
+        function handleImageUpload(file, previewElement, placeholderElement, imageNumber) {
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const img = new Image();
+                    img.onload = function() {
+                        previewElement.src = e.target.result;
+                        previewElement.classList.remove('hidden');
+                        placeholderElement.classList.add('hidden');
+                        if (imageNumber === 1) image1 = img;
+                        else image2 = img;
+                        checkMergeability();
+                    };
+                    img.src = e.target.result;
+                };
+                reader.readAsDataURL(file);
+            }
+        }
+
+        upload1.addEventListener('change', (e) => handleImageUpload(e.target.files[0], preview1, placeholder1, 1));
+        upload2.addEventListener('change', (e) => handleImageUpload(e.target.files[0], preview2, placeholder2, 2));
+
+        function checkMergeability() {
+            mergeBtn.disabled = !(image1 && image2);
+        }
+
+        mergeBtn.addEventListener('click', () => {
+            if (!image1 || !image2) return;
+
+            const ctx = resultCanvas.getContext('2d');
+            resultCanvas.width = Math.max(image1.width, image2.width);
+            resultCanvas.height = Math.max(image1.height, image2.height);
+
+            // Draw first image
+            ctx.drawImage(image1, 0, 0, resultCanvas.width, resultCanvas.height);
+
+            // Apply blend mode and opacity
+            ctx.globalCompositeOperation = blendMode.value;
+            ctx.globalAlpha = opacity.value / 100;
+
+            // Draw second image
+            ctx.drawImage(image2, 0, 0, resultCanvas.width, resultCanvas.height);
+
+            // Reset composite operation
+            ctx.globalCompositeOperation = 'source-over';
+            ctx.globalAlpha = 1.0;
+
+            resultCanvas.classList.remove('hidden');
+            resultPlaceholder.classList.add('hidden');
+            downloadBtn.disabled = false;
+        });
+
+        downloadBtn.addEventListener('click', () => {
+            if (resultCanvas.classList.contains('hidden')) return;
+
+            const link = document.createElement('a');
+            link.download = 'merged-image.png';
+            link.href = resultCanvas.toDataURL('image/png');
+            link.click();
+        });
+
+        // Update preview when blend mode or opacity changes
+        blendMode.addEventListener('change', () => mergeBtn.click());
+        opacity.addEventListener('input', () => mergeBtn.click());
+
+        // Initial state
+        mergeBtn.disabled = true;
+        downloadBtn.disabled = true;
+    </script>
+<script>document.body.addEventListener('wheel', e => { if (!e.ctrlKey) return; e.preventDefault(); return }, { passive: false })</script>
+	</body>
+</html>
